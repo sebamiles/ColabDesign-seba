@@ -43,7 +43,6 @@ def main(argv):
   ag.add(["num_seqs="     ],         8,    int, ["number of mpnn designs to evaluate"])
   ag.add(["initial_guess" ],     False,   None, ["initialize previous coordinates"])
   ag.add(["use_multimer"  ],     False,   None, ["use alphafold_multimer_v3"])
-  ag.add(["use_soluble"   ],     False,   None, ["use solubleMPNN"])
   ag.add(["num_recycles=" ],         3,    int, ["number of recycles"])
   ag.add(["rm_aa="],               "C",    str, ["disable specific amino acids from being sampled"])
   ag.add(["num_designs="  ],         1,    int, ["number of designs to evaluate"])
@@ -96,7 +95,7 @@ def main(argv):
                   "binder_chain":",".join(binder_chains),
                   "rm_aa":o.rm_aa}
     opt_extra = {}
-  
+
   elif sum(fixed_pos) > 0:
     protocol = "partial"
     print("protocol=partial")
@@ -120,12 +119,12 @@ def main(argv):
                   "rm_aa":o.rm_aa}
 
   batch_size = 8
-  if o.num_seqs < batch_size:    
+  if o.num_seqs < batch_size:
     batch_size = o.num_seqs
-  
+
   print("running proteinMPNN...")
-  sampling_temp = 0.1
-  mpnn_model = mk_mpnn_model(weights="soluble" if o.use_soluble else "original")
+  sampling_temp = o.mpnn_sampling_temp
+  mpnn_model = mk_mpnn_model()
   outs = []
   pdbs = []
   for m in range(o.num_designs):
@@ -182,7 +181,7 @@ def main(argv):
         print(" ".join(score_line)+" "+out["seq"][n])
         line = f'>{"|".join(score_line)}\n{out["seq"][n]}'
         fasta.write(line+"\n")
-      data += [[out[k][n] for k in labels] for n in range(o.num_seqs)]
+      data += [[pdb_filename] + [out[k][n] for k in labels] for n in range(o.num_seqs)]
       af_model.save_pdb(f"{o.loc}/best_design{m}.pdb")
 
   # save best
@@ -190,10 +189,10 @@ def main(argv):
     remark_text = f"design {best['design']} N {best['n']} RMSD {best['rmsd']:.3f}"
     handle.write(f"REMARK 001 {remark_text}\n")
     handle.write(open(f"{o.loc}/best_design{best['design']}.pdb", "r").read())
-    
-  labels[2] = "mpnn"
+
+  labels.insert(0, 'pdb_filename')
   df = pd.DataFrame(data, columns=labels)
-  df.to_csv(f'{o.loc}/mpnn_results.csv')
+  df.to_csv(f'/content/mpnn_results.csv', mode='a') #, header=False
 
 if __name__ == "__main__":
    main(sys.argv[1:])
