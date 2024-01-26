@@ -190,9 +190,15 @@ def main(argv):
     handle.write(f"REMARK 001 {remark_text}\n")
     handle.write(open(f"{o.loc}/best_design{best['design']}.pdb", "r").read())
 
-  labels.insert(0, 'pdb_filename')
-  df = pd.DataFrame(data, columns=labels)
-  df.to_csv(f'/content/mpnn_results.csv', mode='a') #, header=False
+    labels.insert(0, 'pdb_filename')
+    df = pd.DataFrame(data, columns=labels)
+    
+    # Write the header only in the first iteration
+    if first_iteration:
+        df.to_csv(f'/content/closed_MIS.csv', mode='a')
+        first_iteration = False
+    else:
+        df.to_csv(f'/content/closed_MIS.csv', mode='a', header=False)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
